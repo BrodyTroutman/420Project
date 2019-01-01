@@ -1,687 +1,883 @@
+/**
+ * @author SWETR
+ * @Version 3. something -- This has the grid
+ * @since April 2018
+ */
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javafx.application.Application;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Group;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollPane.ScrollBarPolicy;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Polygon;
+import javafx.scene.shape.Polyline;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
 import javafx.scene.control.TextArea;
-import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
+import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
 
-public class ClassBox {
+public class UML extends Application {
+	
+	/** startingPointX describes the last stored value pertaining to the X coordinate of the start of a mouse drag gesture */
+	double startingPointX;
+	/** startingPointY describes the last stored value pertaining to the Y coordinate of the start of a mouse drag gesture */
+	double startingPointY;
+	/** currentEndingPointX describes the last stored value pertaining to the X coordinate of the end of a mouse drag gesture */
+	double currentEndingPointX;
+	/** currentEndingPointY describes the last stored value pertaining to the Y coordinate of the end of a mouse drag gesture */
+	double currentEndingPointY;
 
-	private double startX, startY;
-	private double width;
-	private double height;
-
-	// Rectangle area where user can click & drag to move this Class Box.
-	private Rectangle dragArea;
-
-	// Rectangle parts of ClassBox
-	private Rectangle rTop, rMid, rBot;
-
-	// TextArea parts of ClassBox
-	private TextArea tTop, tMid, tBot;
-
-	// Rectangle area where user can click & drag to resize this Class Box.
-	private Rectangle resizeArea;
-
-	// Rectangle area where user can click to remove the Class Box.
-	private Rectangle deleteArea;
-
-	/**
-	 * ClassBox Constructor. Initializes all parts including dragArea, resizeArea,
-	 * and deleteArea & draws class box.
-	 */
-	public ClassBox() {
-
-		startX = 300;
-		startY = 300;
-		width = 130;
-		height = 130;
-
-		updateDeleteArea();
-		updateDragArea();
-		updateResizeArea();
-		updateBoxes(startX, startY, width, height);
-		updateTextAreas(startX, startY, width, height);
-		makeDeletable();
-		makeResizable();
-		makeDraggable();
-		showAura();
-		// resizeInternals();
-
-	}
-
-	/**
-	 * Constructor with passed in parameters to specify location and shape.
-	 * 
-	 * @param startX
-	 *            X value of top left of this ClassBox.
-	 * @param startY
-	 *            Y value of top left of this ClassBox.
-	 * @param width
-	 *            Width of this ClassBox.
-	 * @param height
-	 *            Height of this ClassBox.
-	 */
-	public ClassBox(double startX, double startY, double width, double height, String Top, String Mid, String Bot) {
-
-		this.startX = startX;
-		this.startY = startY;
-		this.width = width;
-		this.height = height;
-
-		// this.dragArea = new Rectangle(startX, startY, width, height);
-		// dragArea.setStrokeWidth(2);
-		// dragArea.setStroke(Color.RED);
-		// dragArea.setFill(Color.TRANSPARENT);
-		updateDeleteArea();
-		updateDragArea();
-		updateBoxes(this.startX, this.startY, this.width, height);
-		updateTextAreas(this.startX, this.startY, this.width, height);
-		tTop.setText(Top);
-		tMid.setText(Mid);
-		tBot.setText(Bot);
-		makeDeletable();
-
-		updateResizeArea();
-		makeResizable();
-		makeDraggable();
-	}
-
-	// Method to update Rectangles within ClassBox.
-	// Called whenever the model needs to be updated, like when it's dragged or
-	// resized.
-	// Also gets called when ClassBox is created.
-	/**
-	 * Updates the boxes within this ClassBox to necessary location and size.
-	 * 
-	 * @param startX
-	 *            X value to make new X value of top left coordinate of this
-	 *            ClassBox.
-	 * @param startY
-	 *            Y value to make new Y value of top-left coordinate of this
-	 *            ClassBox.
-	 * @param width
-	 *            Width value to make new width of this ClassBox.
-	 * @param height
-	 *            Height value to make new height of this ClassBox.
-	 */
-	public void updateBoxes(double startX, double startY, double width, double height) {
-
-		this.startX = startX;
-		this.startY = startY;
-		this.width = width;
-		this.height = height;
-
-		if (this.width < -1) {
-			this.width = -this.width;
-			this.startX = this.startX - this.width;
-		}
-		if (this.height < -1) {
-			this.height = -this.height;
-			this.startY = this.startY - this.height;
-		}
-
-		// Set Min height + width
-		if (this.height < 130) {
-			this.height = 130;
-		}
-		if (this.width < 130) {
-			this.width = 130;
-		}
-		// Each section of box is a third.
-		double ythird = this.height / 3.0;
-
-
-		if (rTop == null) {
-			rTop = new Rectangle(this.startX, this.startY, this.width, ythird);
-			rTop.setFill(Color.WHITE);
-			rTop.setStroke(Color.BLACK);
-			rTop.setStrokeWidth(2);
-		}
-		rTop.setX(this.startX);
-		rTop.setY(this.startY);
-		rTop.setWidth(this.width);
-		rTop.setHeight(40);
-
-		if (rMid == null) {
-			rMid = new Rectangle(this.startX, this.startY + ythird, this.width, ythird);
-			rMid.setFill(Color.WHITE);
-			rMid.setStroke(Color.BLACK);
-			rMid.setStrokeWidth(2);
-		}
-		rMid.setX(this.startX);
-		rMid.setY(this.startY + 40);
-		rMid.setWidth(this.width);
-		rMid.setHeight((this.height - 40) / 2);
-
-		if (rBot == null) {
-			rBot = new Rectangle(this.startX, this.startY + 2 * ythird, this.width, ythird);
-			rBot.setFill(Color.WHITE);
-			rBot.setStroke(Color.BLACK);
-			rBot.setStrokeWidth(2);
-		}
-		rBot.setX(this.startX);
-		rBot.setY(rMid.getY() + rMid.getHeight());
-		rBot.setWidth(this.width);
-		rBot.setHeight(rMid.getHeight());
-	}
-
-	// Method to update TextAreas within ClassBox.
-	// Called whenever the model needs to be updated, like when it's dragged or
-	// resized.
-	// Also gets called when ClassBox is created.
-	/**
-	 * Updates the TextAreas within this ClassBox to necessary location and size.
-	 * 
-	 * @param startX
-	 *            X value to make new X value of top left coodinate of this
-	 *            ClassBox.
-	 * @param startY
-	 *            Y value to make new Y value of top-left coordinate of this
-	 *            ClassBox.
-	 * @param width
-	 *            Width value to make new width of this ClassBox.
-	 * @param height
-	 *            Height value to make new height of this ClassBox.
-	 */
-	public void updateTextAreas(double startX, double startY, double width, double height) {
-
-		if (width < -1) {
-			width = -width;
-			startX = startX - width;
-		}
-		if (height < -1) {
-			height = -height;
-			startY = startY - height;
-		}
-
-		// Set Min height + width
-		if (height < 130) {
-			height = 130;
-		}
-		if (width < 130) {
-			width = 130;
-		}
-		if (tTop == null) {
-			tTop = new TextArea();
-		}
+	/** isTextFieldBeingDrawn represents whether or not a textField is the current option that the user wishes to draw */
+	boolean isTextFieldBeingDrawn = false;
+	
+	/** drawingBox is the drawing area for the UML editor. All user created objects are placed inside of this area. */
+	public static VBox drawingBox;
+	
+	public static VBox infoVBox;
+	
+	/** userClicked describes whether or not an object has been selected to be drawn. Resets to false after every drawn object. */
+	static boolean userClicked = false;
 		
-		tTop.setLayoutX(startX + 1);
-		tTop.setLayoutY(startY + 1);
-		tTop.setPrefHeight(40 - 2);
-		tTop.setPrefWidth(width - 2);
-		// Only certain fonts can be bold -- Verdana is one of them
-		tTop.setFont(Font.font ("Verdana", 12)); 
-		// This breaks if it is moved to the css file
-		// because css does not support this, 
-		// but JavaFX does
-		tTop.setStyle("-fx-font-weight: bold;");
-		tTop.setId("top");
-
-		if (tMid == null) {
-			tMid = new TextArea();
-		}
-		tMid.setLayoutX(startX + 1);
-		tMid.setLayoutY(rMid.getY() + 1);
-		tMid.setPrefHeight(rMid.getHeight() - 2);
-		tMid.setPrefWidth(width - 2);
-		tMid.setFont(Font.font ("Verdana", 12)); 
-
-		if (tBot == null) {
-			tBot = new TextArea();
-		}
-		tBot.setLayoutX(startX + 1);
-		tBot.setLayoutY(rBot.getY() + 1);
-		tBot.setPrefHeight(rBot.getHeight() - 2);
-		tBot.setPrefWidth(width - 2);
-		tBot.setFont(Font.font ("Verdana", 12)); 
+	/** screenWidth describes the width of the screen that the program is currently being ran in. Used to calculate sizes for the windows. */
+	double screenWidth = Screen.getPrimary().getVisualBounds().getWidth();
+	/** screenHeight describes the height of the screen that the program is currently being ran in. Used to calculate sizes for the windows. */
+	double screenHeight = Screen.getPrimary().getVisualBounds().getHeight();
+	
+	TextArea newTextField = null;
+	
+	GridPane grid;
+	
+	public static Pane pane;
+	
+	public static Stage UMLStage;
+	
+	//Used to store objects for saving purposes. 
+	static ArrayList<ClassBox> cBoxArray = new ArrayList<ClassBox>();
+	ArrayList<Relationship> relArray = new ArrayList<Relationship>();
+	static ArrayList<TextBox> tbArray = new ArrayList<TextBox>();
+	
+	public static boolean hideClassBox;
+	
+	public static void main(String[] args) {
+		launch(args);
 	}
-
-	// Draws the ClassBox inside the group.
-	// This is the round-about way that I'm drawing the ClassBox, but it works.
-	/**
-	 * Draws this ClassBox on the screen.
-	 * 
-	 * @param g
-	 *            The Group in which this ClassBox is placed.
+	
+	/** start Initializes the window of the UML editor and calls {@link createUMLOptions}. 
+	 * @param UMLStage The root node of the JavaFX application. Provides 
 	 */
-	public void drawMe(Pane pane) {
-		pane.getChildren().addAll(dragArea, resizeArea, deleteArea, rTop, rMid, rBot, tTop, tMid, tBot);
-		UML.setUserClicked(false);
-	}
-
-	// Getter X value of Top left coordinate
-	/**
-	 * Returns this ClassBox's startX field.
-	 * 
-	 * @return This ClassBox's startX field.
-	 */
-	public double getStartX() {
-		return startX;
-	}
-
-	// Getter Y value of Top left coordinate
-	/**
-	 * Returns this ClassBox's startX field.
-	 * 
-	 * @return This ClassBox's startY field.
-	 */
-	public double getStartY() {
-		return startY;
-	}
-
-	/**
-	 * Returns height of this ClassBox.
-	 * 
-	 * @return height This ClassBox's height.
-	 */
-	public double getHeight() {
-		return height;
-	}
-
-	/**
-	 * Returns width of this ClassBox.
-	 * 
-	 * @return width This ClassBox's height.
-	 */
-	public double getWidth() {
-		return width;
-	}
-
-	/**
-	 * Returns the top text area of this ClassBox.
-	 * 
-	 * @return This ClassBox's top text area.
-	 */
-	public TextArea getTTop() {
-		return this.tTop;
-	}
-
-	/**
-	 * Returns the middle text area of this ClassBox.
-	 * 
-	 * @return This ClassBox's middle text area.
-	 */
-	public TextArea getTMid() {
-		return this.tMid;
-	}
-
-	/**
-	 * Returns the bottom text area of this ClassBox.
-	 * 
-	 * @return This ClassBox's bottom text area.
-	 */
-	public TextArea getTBot() {
-		return this.tBot;
-	}
-
-	/**
-	 * Helper function for makeDraggable
-	 * 
-	 * @param x
-	 *            This ClassBox's starting X coordinate
-	 */
-	private void setStartX(double x) {
-		startX = x;
-		updateBoxes(x, startY, width, height);
-		updateTextAreas(x, startY, width, height);
-	}
-
-	/**
-	 * Helper function for makeDraggable
-	 * 
-	 * @param x
-	 *            This ClassBox's starting Y coordinate
-	 */
-	private void setStartY(double y) {
-		startY = y;
-		updateBoxes(startX, y, width, height);
-		updateTextAreas(startX, y, width, height);
-	}
-
-	/**
-	 * Helper function for makeResizable. Does the box logic that happens a lot to
-	 * ensure minimum size, correct orientation.
-	 * 
-	 * @param x
-	 *            The horizontal bounds of the resize area
-	 */
-	private void setEndX(double x) {
-		width = x - startX;
-
-		// logic to "reverse" box to proper orientation if necessary
-		if (width < -1) {
-			width = -width;
-			startX = startX - width;
-		}
-		if (width < 130) {
-			width = 130;
-		}
-
-		updateBoxes(startX, startY, width, height);
-		updateTextAreas(startX, startY, width, height);
-	}
-
-	/**
-	 * Helper function for makeResizable. Does the box logic that happens a lot to
-	 * ensure minimum size, correct orientation.
-	 * 
-	 * @param y
-	 *            The vertical bounds of the resize area
-	 */
-	private void setEndY(double y) {
-		height = y - startY;
-
-		// logic to "reverse" box to proper orientation if necessary
-		if (height < -1) {
-			height = -height;
-			startY = startY - height;
-		}
-		if (height < 120) {
-			height = 130;
-		}
-
-		updateBoxes(startX, startY, width, height);
-		updateTextAreas(startX, startY, width, height);
-	}
-
-	/**
-	 * Creates mouse listener for dragArea (Red outline around ClassBox)
-	 */
-	private void makeDraggable() {
-		this.dragArea.setOnMouseDragged(eventDragged -> {
-			//Sets colors for boxes
-			dragArea.setStroke(Color.RED);
-			resizeArea.setFill(Color.GREEN);
-			deleteArea.setFill(Color.RED);
-			this.setStartX(checkBoundsX(eventDragged.getSceneX(), dragArea));
-			this.setStartY(checkBoundsY(eventDragged.getSceneY(), dragArea));
-			updateDragArea();
-			updateResizeArea();
-			updateDeleteArea();
-			eventDragged.consume();
-		});
+	@Override
+	public void start(Stage UnusedStage) {
+		Group group = new Group();
+		UMLStage = new Stage();
+		UMLStage.setTitle("SWETR UML Diagram Application");
+		// image courtesy of google
+		// image source: https://thenounproject.com/term/sweater/
+		UMLStage.getIcons().add(new Image("swetr_icon.png"));
 		
+		Scene UMLScene = new Scene(group, screenWidth*.99, screenHeight*.95); // dimensions can be changed
 		
-	}
+		UMLScene.getStylesheets().add("stylesheet.css");
 
-	/**
-	 * Creates mouse listener for resizeArea (Green square at bottom right corner of
-	 * drag area)
-	 */
-	private void makeResizable() {
-		this.resizeArea.setOnMouseDragged(eventDragged -> {
-			dragArea.setStroke(Color.RED);
-			resizeArea.setFill(Color.GREEN);
-			deleteArea.setFill(Color.RED);
-			this.setEndX(checkBoundsX(eventDragged.getSceneX(), resizeArea));
-			this.setEndY(checkBoundsY(eventDragged.getSceneY(), resizeArea));
-			updateDragArea();
-			updateResizeArea();
-			updateDeleteArea();
-			eventDragged.consume();
-		});
-
-		resizeArea.setOnMouseEntered(eventEntered -> {
-			resizeArea.setFill(Color.GREEN);
-			dragArea.setStroke(Color.RED);
-			deleteArea.setFill(Color.RED);
-		});
+		UMLStage.setScene(UMLScene);
+		UMLStage.show();
 		
-		resizeArea.setOnMouseExited(eventDone -> {
-			resizeArea.setFill(Color.TRANSPARENT);
-			deleteArea.setFill(Color.TRANSPARENT);
-			dragArea.setStroke(Color.TRANSPARENT);
-		});
-	}
-
-	/**
-	 * Creates mouse listener for deleteArea (Red square at top left corner of drag
-	 * area)
-	 */
-	private void makeDeletable() {
-		this.deleteArea.setOnMouseClicked(event -> {
-			removeClassBox();
-			deleteArea.setVisible(false);
-			deleteArea = null;
-			event.consume();
-		});
-
-		
-		deleteArea.setOnMouseEntered(eventEntered -> {
-			resizeArea.setFill(Color.GREEN);
-			dragArea.setStroke(Color.RED);
-			deleteArea.setFill(Color.RED);
-		});
-	}
-
-	/**
-	 * Updates resizeArea to match ClassBox location.
-	 */
-	private void updateResizeArea() {
-		if (resizeArea == null) {
-			resizeArea = new Rectangle(startX + width, startY + height, 7.5, 7.5);
-			resizeArea.setFill(Color.TRANSPARENT);
-			resizeArea.setOpacity(50);
-		} else {
-			resizeArea.setFill(Color.GREEN);
-		}
-		resizeArea.setX(startX + width);
-		resizeArea.setY(startY + height);
-	}
-
-	/**
-	 * Updates deleteArea to match ClassBox location. Creates new if class box is
-	 * being made.
-	 */
-	private void updateDeleteArea() {
-		if (this.deleteArea == null) {
-			this.deleteArea = new Rectangle(startX - 7, startY - 7, 7.5, 7.5);
-			this.deleteArea.setFill(Color.TRANSPARENT);
-			this.deleteArea.setOpacity(50);
-		} else {
-			deleteArea.setFill(Color.RED);
-		}
-
-		deleteArea.setX(startX - 7);
-		deleteArea.setY(startY - 7);
-	}
-
-	/**
-	 * Updates dragArea to match ClassBox location. Creates new if class box is
-	 * being made.
-	 */
-	private void updateDragArea() {
-		if (dragArea == null) {
-			dragArea = new Rectangle(startX - 7.5, startY - 7.5, width + 15, height + 15);
-			dragArea.setStroke(Color.TRANSPARENT);
-			dragArea.setFill(Color.TRANSPARENT);
-			dragToggle();
-		} else {
-			dragArea.setStroke(Color.RED);
-		}
-		dragArea.setX(this.startX - 7.5);
-		dragArea.setY(this.startY - 7.5);
-		dragArea.setHeight(this.height + 15);
-		dragArea.setWidth(this.width + 15);
-	}
-
-	/**
-	 * Bounds checking for X parameter for dragging and Resizing. Logic
-	 * differentiates between dragging and resizing, since you can drag from
-	 * anywhere, but only resize from bottom right.
-	 * 
-	 * @param x
-	 *            The X coordinate of the rectangle
-	 * @param r
-	 *            The rectangle to be checked
-	 * @return The X coordinate of the rectangle
-	 */
-	private double checkBoundsX(double x, Rectangle r) {
-		if (x < UML.drawingBox.getBoundsInParent().getMinX() + 7.5) { // left side of gray area
-			x = UML.drawingBox.getBoundsInParent().getMinX() + 7.5;
-		}
-		if (r.equals(resizeArea)) {
-			if (x > UML.drawingBox.getBoundsInParent().getMaxX() - 7.5) {
-				x = UML.drawingBox.getBoundsInParent().getMaxX() - 7.5;
-			}
-		} else {
-			if (x + this.width > UML.drawingBox.getBoundsInParent().getMaxX() - 7.5) { // right side of gray area
-				x = UML.drawingBox.getBoundsInParent().getMaxX() - 7.5 - this.width;
-			}
-		}
-
-		return x;
-	}
-
-	/**
-	 * Bounds checking for Y parameter for dragging and Resizing. Logic
-	 * differentiates between dragging and resizing, since you can drag from
-	 * anywhere, but only resize from bottom right.
-	 * 
-	 * @param y
-	 *            The Y coordinate of the rectangle
-	 * @param r
-	 *            The rectangle to be checked
-	 * @return The Y coordinate of the rectangle
-	 */
-	private double checkBoundsY(double y, Rectangle r) {
-		if (y < UML.drawingBox.getBoundsInParent().getMinY() + 7.5) { // top of gray area
-			y = UML.drawingBox.getBoundsInParent().getMinY() + 7.5;
-		}
-
-		if (r.equals(resizeArea)) {
-			if (y > UML.drawingBox.getBoundsInParent().getMaxY() - 7.5) {
-				y = UML.drawingBox.getBoundsInParent().getMaxY() - 7.5;
-			}
-		} else {
-			if (y + this.height > UML.drawingBox.getBoundsInParent().getMaxY() - 7.5) { // bottom of gray area
-				y = UML.drawingBox.getBoundsInParent().getMaxY() - 7.5 - this.height;
-
-				/*
-				// Because user is trying to draw at bottom, should allow the drawing scene to grow
-				Stage UMLStage = UML.getStage();
-				UMLStage.setResizable(true);
-				UMLStage.setHeight(UMLStage.getHeight() + 100);
-				*/
-			}
-		}
-
-		return y;
-	}
-
-	/**
-	 * Toggles visibility of dragArea and resizeArea by setting their colors.
-	 * Setting .isVisible(false) doesn't allow setOnMouseEntered to activate, I
-	 * think the object isn't there anymore.
-	 */
-	private void dragToggle() {
-		// Fixed weird bug where if you released while moving fast, aura would persist
-		dragArea.setOnMouseDragReleased(eventDone -> {
-			resizeArea.setFill(Color.TRANSPARENT);
-			deleteArea.setFill(Color.TRANSPARENT);
-			dragArea.setStroke(Color.TRANSPARENT);
-		});
-		// Fixed weird bug where if you released while moving fast, aura would persist
-		//^^ not sure if both are necessary
-		dragArea.setOnMouseReleased(eventDone -> {
-			resizeArea.setFill(Color.TRANSPARENT);
-			deleteArea.setFill(Color.TRANSPARENT);
-			dragArea.setStroke(Color.TRANSPARENT);
-		});
-		// Visually hides (not to system) when not "active"
-		dragArea.setOnMouseExited(eventExited -> {
-			resizeArea.setFill(Color.TRANSPARENT);
-			deleteArea.setFill(Color.TRANSPARENT);
-			dragArea.setStroke(Color.TRANSPARENT);
-		});
-
-		// Moving from dragArea to resizeArea to keep everything visible
-		dragArea.setOnMouseEntered(eventEntered -> {
-			resizeArea.setFill(Color.GREEN);
-			deleteArea.setFill(Color.RED);
-			dragArea.setStroke(Color.RED);
-		});
-
-		// Moving from dragArea to resizeArea to keep both visible
-		deleteArea.setOnMouseEntered(eventEntered -> {
-			resizeArea.setFill(Color.GREEN);
-			deleteArea.setFill(Color.RED);
-			dragArea.setStroke(Color.RED);
-		});
-
-	}
-
-	/**
-	 * Returns String representation of Relationship "/" == Field delimiter "~~~~"
-	 * == Object delimiter for save file
-	 * 
-	 * @return Info about the location of the object
-	 */
-	public String whereAmI() {
-		String tText = "PLACEHOLDER", mText = "PLACEHOLDER", bText = "PLACEHOLDER";
-		if (!tTop.getText().equals("")) {
-			tText = tTop.getText();
-		}
-		if (!tMid.getText().equals("")) {
-			mText = tMid.getText();
-		}
-		if (!tBot.getText().equals("")) {
-			bText = tBot.getText();
-		}
-		return ("CLASSBOX/" + startX + "/" + startY + "/" + width + "/" + height + "/" + tText + "/" + mText + "/"
-				+ bText + "~~~~");
-	}
-
-	/**
-	 * Returns text as string currently located in specified TextArea.
-	 * 
-	 * @param t
-	 *            TextArea to get text from.
-	 * @return String Text value of Textbox.
-	 */
-	public String getText(TextArea t) {
-		return t.getText();
-	}
-
-	/**
-	 * Effectively deletes class box by removing all components
-	 */
-	private void removeClassBox() {
-		Pane pane = UML.getPane();
-		pane.getChildren().removeAll(dragArea, resizeArea, rTop, rMid, rBot, tTop, tMid, tBot);
-	}
-
-	/**
-	 * Hides Aura (+ to system) for when drawing a line
-	 */
-	public void hideAura() {
-		this.dragArea.setVisible(false);
-		this.resizeArea.setVisible(false);
-		if (deleteArea != null) {
-		this.deleteArea.setVisible(false);
-		}
-	}
-
-	/**
-	 * Shows Aura (+ to system) for after done drawing a line
-	 */
-	public void showAura() {
-		this.dragArea.setVisible(true);
-		this.resizeArea.setVisible(true);
-		if (deleteArea != null) {
-		this.deleteArea.setVisible(true);
-		}
+		createUMLOptions(UMLStage, UMLScene, group);
 	}
 
 	
 	/**
-	 * Returns whether or not ClassBox is "deleted"
+	 * Creates all of the objects in an initial window. This includes the top row of
+	 * buttons, the left-hand side column of buttons, and the drawingBox
 	 * 
-	 * @return boolean True if deleted, false if not. 
+	 * @param UMLStage
+	 *            Primary stage on which the Scene, UMLScene is displayed
+	 * @param UMLScene
+	 *            Container for the group
+	 * @param group
+	 *            Contains all of the JavaFX elements such as Buttons and shapes
 	 */
-	public boolean isDeleted() {
-		return deleteArea == null;
+	private void createUMLOptions(Stage UMLStage, Scene UMLScene, Group group) {
+		
+		pane = new Pane();
+		
+		drawingBox = new VBox();
+		// hexadecimal for light gray
+		drawingBox.setStyle("-fx-background-color: #D3D3D3;");
+		drawingBox.prefWidthProperty().bind(UMLStage.widthProperty().multiply(0.915));
+		drawingBox.prefHeightProperty().bind(UMLStage.heightProperty().multiply(0.923));
+		//drawingBox.prefWidth(10000);
+		//drawingBox.prefHeight(10000);
+
+		drawingBox.setTranslateY(screenHeight*.04);
+		drawingBox.setTranslateX(screenWidth*.08);
+		drawingBox.autosize();
+		
+		grid = createGrid();
+		grid.setGridLinesVisible(true);
+		grid.setStyle("-fx-background-color: #D3D3D3;");
+		grid.setOpacity(.5);
+		updateGrid();
+		
+		// creates vertical box to make formatting easier
+		VBox optionsVBox = new VBox(10);
+
+		// maybe look up if there is an align left function. Would be more
+		// understandable
+		optionsVBox.setTranslateY(drawingBox.getTranslateY()); // shift vbox down slightly
+		optionsVBox.setTranslateX(UMLStage.getWidth()*.0005); // shift vbox over to the left so under top row of buttons
+		optionsVBox.setMaxSize(30, 100);
+		optionsVBox.setPadding(new Insets(0));
+		
+		infoVBox = new VBox(10);
+		infoVBox.setTranslateY(drawingBox.getTranslateY() + 300); // shift vbox down slightly
+		infoVBox.setTranslateX(UMLStage.getWidth()*.0005); // shift vbox over to the left so under top row of buttons
+		optionsVBox.setMaxSize(30, 100);
+		
+		HBox buttonsHBox = new HBox(10);
+		buttonsHBox.setTranslateY(screenHeight*.001);
+		buttonsHBox.setTranslateX(drawingBox.getTranslateX());
+
+		createUMLButtons(optionsVBox, pane, group);
+		createTopButtons(buttonsHBox, UMLStage);
+		createInfoPane(infoVBox, UMLScene, group);
+	
+		pane.getChildren().addAll(buttonsHBox, optionsVBox, drawingBox, infoVBox);
+		
+		/**
+		 * We attempted to make the drawing area scrollable so
+		 * the user could draw larger UML diagrams. However, we
+		 * ran out of time for this iteration, but still felt it
+		 * was valuable to include what we were able to accomplish.
+		 * This version does not use the scroll bar, but it could 
+		 * if you would like to test it. Below, in the line that reads
+		 * group.getChildren().add(pane); change it to 
+		 * group.getChildren().add(s1);
+		 * Then, in ClassBox.java, TextBox.java, and Relationship.java,
+		 * there are lines that read:
+		 * Stage UMLStage = UML.getStage();
+		 * UMLStage.setResizable(true);
+		 * UMLStage.setHeight(UMLStage.getHeight() + 100);
+		 * Those three lines are in the checkBoundsY method of each class.
+		 * Uncomment those and the scroll should display. When you drag any
+		 * of the models to the bottom of the screen, the screen should expand.
+		 */
+		 ScrollPane s1 = new ScrollPane();
+		 s1.setMinWidth(UMLStage.getWidth());
+		 s1.setMinHeight(UMLStage.getHeight() * 0.97);
+		 s1.setMaxSize(UMLStage.getWidth(), UMLStage.getHeight());
+		 
+		 s1.setPannable(true);
+		 
+		 s1.setContent(pane);
+		 // Only allow vertical scrolling
+		 s1.setHbarPolicy(ScrollBarPolicy.NEVER);
+		 s1.setVbarPolicy(ScrollBarPolicy.ALWAYS);
+		 
+		 // to test how we far we were able to get with implementing a
+		 // scroll bar to the, change the pane in add's parameters
+		 // to be the scrollbar (s1)
+		 group.getChildren().add(pane);
 	}
 	
+	/**
+	 * Sets dimensions of grid. 
+	 */
+	private void updateGrid () {
+		grid.setPrefWidth(drawingBox.getWidth());
+		grid.setPrefHeight(screenHeight + 100);
+	}
+	
+	/**
+	 * Sets settings for and adds text fields to the VBox used for the info pane.
+	 * 
+	 * @param infoVBox
+	 *            VBox that contains the textfields for the info pane
+	 * @param UMLScene
+	 *            Container for the group
+	 * @param group
+	 *            Contains all of the JavaFX elements such as Buttons and shapes
+	 */
+	private void createInfoPane(VBox infoVBox, Scene UMLScene, Group group) {
+
+		infoVBox.setMinWidth(110);
+
+		Label startXLabel = new Label("Start X");
+		Label startYLabel = new Label("Start Y");
+		Label endXLabel = new Label("End X");
+		Label endYLabel = new Label("End Y");
+
+		TextField startX = new TextField();
+		TextField startY = new TextField();
+		TextField endX = new TextField();
+		TextField endY = new TextField();
+		
+		startX.setPrefWidth(110);
+		startY.setPrefWidth(110);
+		endX.setPrefWidth(110);
+		endY.setPrefWidth(110);
+
+		infoVBox.getChildren().addAll(startXLabel, startX, startYLabel, startY, endXLabel, endX, endYLabel, endY);
+	}
+
+	/**
+	 * Sets each text field of the info pane to coordinates of a line passed in from
+	 * Relationship.java
+	 * 
+	 * @param lineStartX
+	 *            The selected line's starting X coordinate
+	 * @param lineStartY
+	 *            The selected line's starting Y coordinate
+	 * @param lineEndX
+	 *            The selected line's ending X coordinate
+	 * @param lineEndY
+	 *            The selected line's ending Y coordinate
+	 */
+	public static void setInfoPane(double lineStartX, double lineStartY, double lineEndX, double lineEndY) {
+		TextField lsxNode = (TextField) infoVBox.getChildren().get(1);
+		lsxNode.setText(Double.toString(lineStartX));
+		
+		TextField lsyNode = (TextField) infoVBox.getChildren().get(3);
+		lsyNode.setText(Double.toString(lineStartY));
+		
+		TextField lexNode = (TextField) infoVBox.getChildren().get(5);
+		lexNode.setText(Double.toString(lineEndX));
+		
+		TextField leyNode = (TextField) infoVBox.getChildren().get(7);
+		leyNode.setText(Double.toString(lineEndY));
+	}
+	
+	/**
+	 * Creates the left-hand side buttons that encompass the options that users have
+	 * to pick from to create.
+	 * 
+	 * @param optionsVBox
+	 *            Container in which all of the buttons are stored.
+	 * @param UMLScene
+	 *            Container for the group
+	 * @param group
+	 *            Contains all of the JavaFX elements such as Buttons and shapes
+	 */ 
+	private void createUMLButtons(VBox optionsVBox, Pane pane, Group group) {
+		
+		Button aggregation = new Button("Aggregation");
+		Button composition = new Button("Composition");
+		Button generalization = new Button("Generalization");
+		Button dependency = new Button("Dependency");
+		
+		aggregation.setPrefWidth(110);
+		composition.setPrefWidth(110);
+		generalization.setPrefWidth(110);
+		dependency.setPrefWidth(110);
+		
+		Button[] buttons = new Button[4];
+		buttons[0] = aggregation;
+		buttons[1] = composition;
+		buttons[2] = generalization;
+		buttons[3] = dependency;
+		
+		// draw the line depending on the button press
+		for(Button b : buttons) {
+			b.setOnAction((event) -> {
+				setUserClicked(true);
+				String option = b.getText();
+				Relationship newRelationship = new Relationship(pane, option);
+				relArray.add(newRelationship);
+			});
+		}
+
+		// class box
+		Button classBox = new Button();
+		classBox.setText("Class Box");
+		classBox.setPrefWidth(110);
+		
+		// maybe should generalize this more
+		optionsVBox.setMinWidth(110);
+
+		// Handle event
+		classBox.setOnAction((event) -> {
+			ClassBox cb = new ClassBox();
+			cb.drawMe(pane);
+			cBoxArray.add(cb);
+		});
+		
+		// add text or note
+		Button addText = new Button("Add Text");
+		addText.setPrefWidth(110);
+
+		// Handle event
+		addText.setOnAction((event) -> {
+			setUserClicked(true);
+			TextBox tb = new TextBox();
+			tb.drawMe(pane);
+			tbArray.add(tb);
+		});
+		
+		Button clearAll = new Button("Clear All");
+		clearAll.setPrefWidth(110);
+		
+		// Handle event
+		clearAll.setOnAction((event) -> {
+			setUserClicked(true);
+			createClearWarning();
+		});
+		
+		Button showGridButton = new Button("Show Grid");
+		showGridButton.setPrefWidth(110);
+		
+		Button removeGridButton = new Button("Remove Grid");
+		removeGridButton.setPrefWidth(110);
+		
+		// Handle event
+		showGridButton.setOnAction((event) -> {
+			setUserClicked(true);
+			// show grid
+			drawingBox.getChildren().add(grid);
+			optionsVBox.getChildren().remove(showGridButton);
+			optionsVBox.getChildren().add(removeGridButton);
+		});
+		
+		removeGridButton.setOnAction((event) -> {
+			setUserClicked(true);
+			// remove grid
+			drawingBox.getChildren().remove(grid);
+			optionsVBox.getChildren().remove(removeGridButton);
+			optionsVBox.getChildren().add(showGridButton);
+		});
+		
+		optionsVBox.getChildren().addAll(classBox, aggregation, composition, generalization, dependency, addText, clearAll, showGridButton);
+	}
+
+	/**
+	 * Creates new, save, exit, help buttons
+	 * 
+	 * @param buttonsHBox
+	 *            Container for the buttons
+	 * @param UMLStage
+	 *            Passed along to createExitWarnings for the exit button so that the
+	 *            exit button may properly close the whole application
+	 */
+	private void createTopButtons(HBox buttonsHBox, Stage UMLStage) {
+		Button newButton = new Button();
+		newButton.setText("New");
+
+		Button saveButton = new Button();
+		saveButton.setText("Save");
+
+		Button openExistingUMLButton = new Button();
+		openExistingUMLButton.setText("Open");
+
+		Button exitButton = new Button();
+		exitButton.setText("Exit");
+
+		Button helpButton = new Button();
+		helpButton.setText("Help");
+
+		buttonsHBox.getChildren().addAll(newButton, saveButton, openExistingUMLButton, exitButton, helpButton);
+
+		// New Button brings up new page
+		newButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				createNewDiagram();
+			}
+		});
+
+		// Save Button
+		saveButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				FileChooser fileChooser = new FileChooser();
+
+				// Set extension filter
+				FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+				fileChooser.getExtensionFilters().add(extFilter);
+
+				// Show save file dialog
+				File file = fileChooser.showSaveDialog(UMLStage);
+
+				if (file != null) {
+					String addToFile = "";
+					
+					for (int i = 0; i < cBoxArray.size(); i++) {
+						if (!cBoxArray.get(i).isDeleted()) { 
+						//System.out.print(cBoxArray.get(i).getStartX());
+						addToFile += cBoxArray.get(i).whereAmI();
+						}
+					}
+
+					for (int i = 0; i < relArray.size(); i++) {
+						addToFile += relArray.get(i).whereAmI();
+					}
+					
+					for (int i = 0; i < tbArray.size(); i++) {
+						if (!tbArray.get(i).isDeleted()) {
+						addToFile += tbArray.get(i).whereAmI();
+						}
+					}
+
+					SaveFile(addToFile, file);
+				}
+			}
+		});
+
+		// Open Existing UML Button opens diagram saved on user's computer
+		openExistingUMLButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle("Open Text");
+
+				// Set extension filter
+				FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+				fileChooser.getExtensionFilters().add(extFilter);
+
+				// Show save file dialog
+				File file = fileChooser.showOpenDialog(UMLStage);
+				if (file != null) {
+					try {
+
+						Stage UMLStage = new Stage();
+						UMLStage.setTitle("New UML Diagram");
+						Group group = new Group();
+						Scene UMLScene = new Scene(group, 1400, 700);
+						UMLScene.getStylesheets().add("stylesheet.css");
+						UMLStage.setScene(UMLScene);
+						UMLStage.show();
+
+						createUMLOptions(UMLStage, UMLScene, group);
+						
+						readFile(file,pane);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+
+		// Exit Button
+		exitButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				createExitWarning(UMLStage);
+			}
+		});
+
+		// Help Button brings up help page
+		helpButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				createHelpStage();
+			}
+		});
+	}
+
+	/**
+	 * Help screen, informing user how to interact with the application.
+	 */
+	private void createHelpStage() {
+		Stage helpStage = new Stage();
+		helpStage.setTitle("SWETR's UML Diagram Creation Application");
+		helpStage.getIcons().add(new Image("swetr_icon.png"));
+
+		Text welcomeToSWETR = new Text();
+		welcomeToSWETR.setText("Welcome to SWETR's UML Diagram Creation Application \n\n");
+		welcomeToSWETR.setFont(Font.font(null, FontWeight.BOLD, 30));
+		welcomeToSWETR.setTranslateX(0);
+		welcomeToSWETR.setTranslateY(-170);
+
+		Text introText = new Text();
+		introText.setText("To create a UML diagram, begin by simply clicking on one of the options buttons on the left side.\n\n"
+				+ "Class Box\n"
+				+ "To draw a class box, select the \"Class Box\" button. A class box will appear on the drawing scene.\n\n"
+				+ "Text Box\n"
+				+ "To draw a text box, select the \"Add Text\" button. A text box will appear on the drawing scene.\n\n"
+				+ "Relationship\n"
+				+ "To draw a relationship between two class boxes, select the appropriate button (aggregation, composition, dependency, or composition). "
+				+ "Click anywhere on the drawing scene to beging drawing the relationship. While keeping the mouse pressed, continue to drag until "
+				+ "desired length is reached. Then release the mouse. \n \n"
+				+ "Resize and Move Objects in the Drawing Area\n"
+				+ "When you hover your mouse over a class box, text box, or relationship a red box will surround that object with a small "
+				+ "green rectange in the lower right corner. To move the object around the drawing scene, click within the red box and drag "
+				+ "the to the desired location. To resize the object, click on the small green rectangle and drag to the desired size.");
+		introText.setWrappingWidth(600);
+
+		Button continueButton = new Button();
+		continueButton.setText("Exit");
+		continueButton.setTranslateX(0); // set button to center on x axis
+		continueButton.setTranslateY(200); // move to be at bottom of welcome screen
+
+		continueButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				helpStage.close();
+			}
+		});
+
+		StackPane root = new StackPane();
+		root.getChildren().addAll(welcomeToSWETR, introText, continueButton);
+		helpStage.setScene(new Scene(root, 900, 600)); // dimensions can be changed
+		helpStage.show();
+	}
+
+	/**
+	 * Creates new diagram template
+	 */
+	private void createNewDiagram() {
+		Stage UMLStage = new Stage();
+		UMLStage.setTitle("New UML Diagram");
+		UMLStage.getIcons().add(new Image("swetr_icon.png"));
+		Group group = new Group();
+		Scene UMLScene = new Scene(group, screenWidth*.99, screenHeight*.95);
+		UMLScene.getStylesheets().add("stylesheet.css");
+		UMLStage.setScene(UMLScene); // dimensions can be changed
+		UMLStage.show();
+
+		createUMLOptions(UMLStage, UMLScene, group);
+	}
+
+	/**
+	 * Creates and presents new window to user to confirm that they want to exit
+	 * program.
+	 * 
+	 * @param UMLStage
+	 *            Primary stage on which the Scene, UMLScene is displayed
+	 */
+	private void createExitWarning(Stage UMLStage) {
+		Stage exitWarningStage = new Stage();
+		exitWarningStage.setTitle("Exit Warning!");
+		exitWarningStage.getIcons().add(new Image("swetr_icon.png"));
+		StackPane exitRoot = new StackPane();
+
+		exitWarningStage.setScene(new Scene(exitRoot, 400, 300)); // dimensions can be changed
+		exitWarningStage.show();
+
+		Text warningMessage = new Text();
+		// should eventually change this styling with CSS
+		warningMessage.setText(
+				"\t \t \t WARNING! \n \n Be sure to save your work before exiting. \n Any unsaved work will be deleted.");
+
+		HBox buttonHBox = new HBox();
+		buttonHBox.setSpacing(20);
+		// shifts hbox to bottom of message screen
+		buttonHBox.setAlignment(Pos.BOTTOM_CENTER);
+		buttonHBox.setPadding(new Insets(5));
+
+		Button cancelButton = new Button();
+		cancelButton.setText("Cancel");
+
+		Button exitButton = new Button();
+		exitButton.setText("Exit and Close Application");
+
+		// close exit warning screen, not application
+		cancelButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				exitWarningStage.close();
+			}
+		});
+
+		// close exit warning screen AND application
+		exitButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				exitWarningStage.close();
+				UMLStage.close();
+			}
+		});
+
+		// add buttons to hbox
+		buttonHBox.getChildren().addAll(cancelButton, exitButton);
+		// add hbox and message to the warning screen
+		exitRoot.getChildren().addAll(warningMessage, buttonHBox);
+
+		// maybe add save button to message
+	}
+	
+	/**
+	 * Warns that user when the "Clear All" button is clicked
+	 */
+	private void createClearWarning() {
+		Stage exitWarningStage = new Stage();
+		exitWarningStage.setTitle("Clear All Warning!");
+		exitWarningStage.getIcons().add(new Image("swetr_icon.png"));
+		StackPane exitRoot = new StackPane();
+
+		exitWarningStage.setScene(new Scene(exitRoot, 400, 300)); // dimensions can be changed
+		exitWarningStage.show();
+
+		Text warningMessage = new Text();
+		// should eventually change this styling with CSS
+		warningMessage.setText(
+				"\t \t \t WARNING! \n \n You are about to clear the UML diagram! \n Are you sure you want to clear all?");
+
+		HBox buttonHBox = new HBox();
+		buttonHBox.setSpacing(20);
+		// shifts hbox to bottom of message screen
+		buttonHBox.setAlignment(Pos.BOTTOM_CENTER);
+		buttonHBox.setPadding(new Insets(5));
+
+		Button cancelButton = new Button();
+		cancelButton.setText("Cancel");
+
+		Button yesButton = new Button();
+		yesButton.setText("Yes");
+
+		// close exit warning screen, not application
+		cancelButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				exitWarningStage.close();
+			}
+		});
+
+		// close exit warning screen AND application
+		yesButton.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				pane.getChildren().removeIf(n -> n instanceof Rectangle);
+				pane.getChildren().removeIf(n -> n instanceof TextArea);
+				pane.getChildren().removeIf(n -> n instanceof Line);
+				pane.getChildren().removeIf(n -> n instanceof Polygon);
+				pane.getChildren().removeIf(n -> n instanceof Polyline);
+				exitWarningStage.close();
+			}
+		});
+
+		// add buttons to hbox
+		buttonHBox.getChildren().addAll(cancelButton, yesButton);
+		// add hbox and message to the warning screen
+		exitRoot.getChildren().addAll(warningMessage, buttonHBox);
+	}
+	
+	/**
+	 * @return A cell to be placed in containers
+	 */
+    private StackPane createCell(BooleanProperty cellSwitch) {
+
+        StackPane cell = new StackPane();
+        return cell;
+    }
+
+    /**
+	 * Citation: Code to create grid was modified from a stack overflow post URL:
+	 * https://stackoverflow.com/questions/37619867/how-to-make-gridpanes-lines-visible
+	 * 
+	 * @return A properly sized grid
+	 */
+    private GridPane createGrid() {
+    	
+        int numCols = 40 ;
+        int numRows = 30 ;
+
+        BooleanProperty[][] switches = new BooleanProperty[numCols][numRows];
+        for (int x = 0 ; x < numCols ; x++) {
+            for (int y = 0 ; y < numRows ; y++) {
+                switches[x][y] = new SimpleBooleanProperty();
+            }
+        }
+
+        GridPane grid = new GridPane();
+
+        for (int x = 0 ; x < numCols ; x++) {
+            ColumnConstraints cc = new ColumnConstraints();
+            cc.setHgrow(Priority.ALWAYS);
+            grid.getColumnConstraints().add(cc);
+        }
+
+        for (int y = 0 ; y < numRows ; y++) {
+            RowConstraints rc = new RowConstraints();
+            rc.setVgrow(Priority.ALWAYS);
+            grid.getRowConstraints().add(rc);
+        }
+
+        for (int x = 0 ; x < numCols ; x++) {
+            for (int y = 0 ; y < numRows ; y++) {
+                grid.add(createCell(switches[x][y]), x, y);
+            }
+        }
+        
+        return grid;
+    }
+
+    /**
+	 * Sets the value, {@link userClicked} to passed in boolean value.
+	 * 
+	 * @param b
+	 *            Boolean value to set <code>userClicked</code> to.
+	 */
+	public static void setUserClicked (boolean b) {
+		userClicked = b;
+	}
+	
+	
+	/**
+	 * Returns value associated with {@link userClicked}
+	 * 
+	 * @return boolean Value of userClicked boolean.
+	 */
+	public static boolean getUserClicked () {
+		return userClicked;
+	}
+	
+	/**
+	 * Returns Pane Object used in UML diagram.
+	 * 
+	 * @return Pane Pane object associated with UML diagram.
+	 */
+	public static Pane getPane() {
+		return pane;
+	}
+	
+	/**
+	 * Returns Stage object used in UML diagram.
+	 * 
+	 * @return Stage Stage object used in UML diagram. 
+	 */
+	public static Stage getStage () {
+		return UMLStage;
+	}
+	
+	/**
+	 * Saves a string of info to a text file
+	 * 
+	 * @param content
+	 *            The information about object positions and sizes
+	 * @param file
+	 *            The file where the info is saved
+	 */
+		private void SaveFile(String content, File file) {
+			try {
+				FileWriter fileWriter = null;
+
+				fileWriter = new FileWriter(file);
+				fileWriter.write(content);
+				fileWriter.close();
+			} catch (IOException ex) {
+				Logger.getLogger(UML.class.getName()).log(Level.SEVERE, null, ex);
+			}
+
+		}
+
+		/**
+		 * Reads in save file and breaks into objects
+		 * 
+		 * @param file
+		 *            The file where the info is saved
+		 * @param group
+		 *            Contains all of the JavaFX elements such as Buttons and shapes
+		 * @throws IOException
+		 *             Lines are not properly parsed
+		 */
+		private static void readFile(File file, Pane pane) throws IOException {
+			FileReader in = new FileReader(file);
+			BufferedReader br = new BufferedReader(in);
+			String line;
+			while ((line = br.readLine()) != null) {
+				String[] parts = line.split("~~~~");
+				for (int i = 0; i < parts.length; i++) {
+					readString(parts[i], pane);
+				}
+			}
+			br.close();
+		}
+
+		/**
+		 * Takes object string and parses details
+		 * 
+		 * @param action
+		 *            Info about which objects to create
+		 * @param group
+		 *            Contains all of the JavaFX elements such as Buttons and shapes
+		 */ 
+		private static void readString(String action, Pane pane) {
+
+			String[] parts = action.split("/");
+
+			
+
+			 if (parts[0].equals("Relationship")) {
+
+				String relType = parts[1];
+				double startX = Double.parseDouble(parts[2]);
+				double startY = Double.parseDouble(parts[3]);
+				double endX = Double.parseDouble(parts[4]);
+				double endY = Double.parseDouble(parts[5]);
+
+				new Relationship(pane, relType, startX, startY, endX, endY);
+
+			}
+			 else if (parts[0].equals("CLASSBOX")) {
+
+				double startX = Double.parseDouble(parts[1]);
+				double startY = Double.parseDouble(parts[2]);
+				double width = Double.parseDouble(parts[3]);
+				double height = Double.parseDouble(parts[4]);
+				String tTop = "", tMid = "", tBot = "";
+				if (!parts[5].equals("PLACEHOLDER")) {
+					tTop = parts[5];
+				}
+				if (!parts[6].equals("PLACEHOLDER")) {
+					tMid = parts[6];
+				}
+				if (!parts[7].equals("PLACEHOLDER")) {
+					tBot = parts[7];
+				}
+				ClassBox cBox = new ClassBox(startX, startY, width, height, tTop, tMid, tBot);
+				cBox.drawMe(pane);
+			 }
+			 else if (parts[0].equals("TEXTBOX")) {
+				 double startX = Double.parseDouble(parts[1]);
+					double startY = Double.parseDouble(parts[2]);
+					double width = Double.parseDouble(parts[3]);
+					double height = Double.parseDouble(parts[4]);
+					String text = "";
+					if (!parts[5].equals("PLACEHOLDER")) {
+						text = parts[5];
+					}
+				TextBox tb = new TextBox(startX, startY, width, height, text);
+				tb.drawMe(pane);
+			 }
+			
+		}
 }
